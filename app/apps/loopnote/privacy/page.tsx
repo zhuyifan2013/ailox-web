@@ -24,9 +24,9 @@ export default function PrivacyPage() {
           <div>
             <h2 className="text-xl font-semibold text-white mb-3">1. Overview</h2>
             <p>
-              This Privacy Policy explains how Ailox ("we", "our", or "us") collects, uses, and
-              protects your information when you use{" "}
-              <strong className="text-white">Loopnote</strong>.
+              This Privacy Policy explains how <strong className="text-white">Loopnote</strong>{" "}
+              ("we", "our", or "us") collects, uses, and protects your information when you use
+              the Loopnote app.
             </p>
           </div>
 
@@ -34,8 +34,8 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-semibold text-white mb-3">2. Information We Collect</h2>
             <ul className="list-disc list-inside space-y-2">
               <li>
-                <strong className="text-white">Notes and content</strong> you create within the
-                apps (stored locally on your device by default).
+                <strong className="text-white">Notes and content</strong> you create within
+                Loopnote (stored locally on your device by default).
               </li>
               <li>
                 <strong className="text-white">Photos and images</strong> you choose to attach to
@@ -55,11 +55,11 @@ export default function PrivacyPage() {
           <div>
             <h2 className="text-xl font-semibold text-white mb-3">3. Camera and Photo Access</h2>
             <p>
-              Our apps may request access to your device camera and photo library to allow you to
-              attach images to your notes or records. We use this access solely to let you select
-              or capture images that you explicitly choose to include. We do not access your camera
-              or photos without your action, and we do not upload images to our servers without
-              your knowledge.
+              Loopnote may request access to your device camera and photo library to allow you to
+              attach images to your notes. We use this access solely to let you select or capture
+              images that you explicitly choose to include. Loopnote does not access your camera or
+              photos without your action, and does not upload images to our servers without your
+              knowledge.
             </p>
           </div>
 
@@ -96,7 +96,7 @@ export default function PrivacyPage() {
           <div>
             <h2 className="text-xl font-semibold text-white mb-3">7. Children's Privacy</h2>
             <p>
-              Our apps are not directed at children under 13. We do not knowingly collect personal
+              Loopnote is not directed at children under 13. We do not knowingly collect personal
               information from children under 13.
             </p>
           </div>
