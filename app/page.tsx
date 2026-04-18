@@ -4,10 +4,12 @@ import { EcosystemSection } from "@/components/sections/EcosystemSection"
 import { AppShowcase } from "@/components/sections/AppShowcase"
 import { AIFeatures } from "@/components/sections/AIFeatures"
 import { Roadmap } from "@/components/sections/Roadmap"
+import { TopNav } from "@/components/TopNav"
 
 export default function Home() {
   return (
     <main>
+      <TopNav />
       <HeroSection />
       <PhilosophySection />
       <EcosystemSection />
