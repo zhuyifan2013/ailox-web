@@ -229,6 +229,79 @@ After a deploy, verify:
 
 ---
 
+## Deploying on Vercel
+
+Vercel hosts the marketing site + Dashboard, while the backend stays on
+Aliyun ECS. The Next.js server (on Vercel) proxies every `/api/*` call
+through to `FAVINCI_API_URL`, so the backend **must be publicly reachable
+over HTTPS** from Vercel's egress nodes.
+
+### Required env vars
+
+Dashboard → Project → **Settings → Environment Variables**:
+
+| Variable          | Value                                  | Scope |
+|-------------------|----------------------------------------|-------|
+| `FAVINCI_API_URL` | `https://api.ailox.favinci.cn` (no trailing slash) | Production + Preview + Development |
+
+After adding, **Redeploy** — env var changes do not apply to existing
+deployments.
+
+### Common failure: `ECONNREFUSED 127.0.0.1:8000`
+
+Symptom: login page shows "Invalid email or password." (the client's
+fallback when the upstream fetch throws), backend logs show nothing.
+
+Cause: `FAVINCI_API_URL` is unset, so `lib/dashboard/config.ts` falls
+back to `http://localhost:8000` — which points at the Vercel function's
+own container, not the Aliyun backend.
+
+Fix: set `FAVINCI_API_URL` as above, then redeploy.
+
+### Prerequisites on the Aliyun side
+
+- Backend must be reachable at `https://api.ailox.favinci.cn` from the
+  public internet (Nginx + Certbot, security group 443 open to `0.0.0.0/0`).
+- Backend CORS allow-list must include `https://ailox.vercel.app` (or
+  whatever Vercel domain is in use). CORS matters even though Next.js
+  proxies server-side, because some dashboard calls are executed from
+  the browser when latency matters — see "Free-tier cost notes" below.
+- Verify reachability before configuring Vercel:
+  ```bash
+  curl -i https://api.ailox.favinci.cn/health
+  ```
+
+### Free-tier cost notes (Hobby plan)
+
+Vercel Hobby has these monthly caps — relevant because the dashboard's
+usage pattern (every panel = one Route Handler = one Function call)
+burns through them faster than a typical marketing site:
+
+- 100 GB-hours Function execution
+- 100 GB bandwidth
+- 1M Edge Middleware invocations
+- 1000 Image Optimizations
+- **No commercial use** — if the product starts earning revenue, upgrade
+  to Pro ($20/mo) to stay ToS-compliant
+
+Watch-outs specific to this repo:
+
+- **Loopnote images** — do not route user-uploaded images through
+  `/_next/image`. Serve them from the backend / OSS directly. 1000 optimizations
+  disappears in an afternoon if every review card hits the optimizer.
+- **Dashboard read-only panels** — when usage grows, consider moving
+  pure-GET data fetches (events list, summaries) to client-side `fetch`
+  against the backend directly (requires backend CORS), so they don't
+  consume Vercel Function GB-hours. Keep login / write / cookie-mutating
+  calls on the server-side Route Handlers.
+- **Stay on Vercel** for the marketing pages (`/`, `/apps/*`) regardless —
+  they're static, the CDN is good, and they cost effectively nothing.
+- Migration trigger: if usage dashboard hits ~50% of any limit, start
+  planning to move `/dashboard` next to the backend on Aliyun (same
+  systemd unit as the self-hosted path above).
+
+---
+
 ## Rollback
 
 ```bash
