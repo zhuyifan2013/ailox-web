@@ -1,8 +1,35 @@
 "use client"
 
-import { Suspense, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
+import Script from "next/script"
+
+// Google Identity Services — loaded from gsi/client via next/script. The
+// library mounts `window.google.accounts.id` once ready.
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? ""
+
+// Minimal typing for the subset of GIS we touch. Avoids an ambient
+// @types/google.accounts dep.
+type GoogleCredentialResponse = { credential: string }
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: {
+            client_id: string
+            callback: (r: GoogleCredentialResponse) => void
+          }) => void
+          renderButton: (
+            parent: HTMLElement,
+            options: Record<string, unknown>,
+          ) => void
+        }
+      }
+    }
+  }
+}
 
 export default function LoginPage() {
   return (
@@ -21,6 +48,52 @@ function LoginForm() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [gisReady, setGisReady] = useState(false)
+  const googleBtnRef = useRef<HTMLDivElement>(null)
+
+  const onGoogleCredential = useCallback(
+    async (r: GoogleCredentialResponse) => {
+      setError(null)
+      setLoading(true)
+      try {
+        const res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ method: "google", id_token: r.credential }),
+        })
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          setError(body?.detail || "Google sign-in failed.")
+          return
+        }
+        router.replace(next)
+        router.refresh()
+      } catch {
+        setError("Network error. Please try again.")
+      } finally {
+        setLoading(false)
+      }
+    },
+    [next, router],
+  )
+
+  useEffect(() => {
+    if (!gisReady || !GOOGLE_CLIENT_ID || !googleBtnRef.current) return
+    const gis = window.google?.accounts.id
+    if (!gis) return
+    gis.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: onGoogleCredential,
+    })
+    gis.renderButton(googleBtnRef.current, {
+      theme: "filled_black",
+      size: "large",
+      type: "standard",
+      shape: "rectangular",
+      text: "continue_with",
+      width: 320,
+    })
+  }, [gisReady, onGoogleCredential])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -86,6 +159,22 @@ function LoginForm() {
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
+
+        {GOOGLE_CLIENT_ID && (
+          <>
+            <div className="flex items-center gap-3 my-6">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-xs text-slate-500">or</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+            <div ref={googleBtnRef} className="flex justify-center" />
+            <Script
+              src="https://accounts.google.com/gsi/client"
+              strategy="afterInteractive"
+              onLoad={() => setGisReady(true)}
+            />
+          </>
+        )}
 
         <p className="text-sm text-slate-400 mt-6 text-center">
           No account?{" "}

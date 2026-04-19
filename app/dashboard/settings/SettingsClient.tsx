@@ -36,7 +36,17 @@ export function SettingsClient({
   const [err, setErr] = useState<string | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState("")
   const [deleting, setDeleting] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const router = useRouter()
+
+  async function signOut() {
+    setSigningOut(true)
+    try {
+      await fetch("/api/auth/logout", { method: "POST" })
+    } catch {}
+    router.replace("/login")
+    router.refresh()
+  }
 
   async function exportData() {
     setErr(null)
@@ -174,6 +184,15 @@ export function SettingsClient({
         ) : (
           <p className="text-sm text-slate-500">Could not load account info.</p>
         )}
+        <div className="pt-2">
+          <button
+            onClick={signOut}
+            disabled={signingOut}
+            className="text-sm px-3 py-1.5 rounded border border-white/10 bg-white/5 hover:bg-white/10 text-slate-200 disabled:opacity-50"
+          >
+            {signingOut ? "Signing out…" : "Sign out"}
+          </button>
+        </div>
       </section>
 
       <section className="rounded-md border border-white/5 bg-white/2 p-5 space-y-4">

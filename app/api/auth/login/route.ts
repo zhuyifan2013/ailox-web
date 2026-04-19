@@ -12,7 +12,12 @@ import type { AuthTokens } from "@/lib/dashboard/session"
  */
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as
-    | { method?: string; email?: string; password?: string }
+    | {
+        method?: string
+        email?: string
+        password?: string
+        id_token?: string
+      }
     | null
 
   if (!body) {
@@ -33,6 +38,16 @@ export async function POST(request: Request) {
       }
       upstreamPath = "/auth/login/email"
       upstreamBody = { email: body.email, password: body.password }
+      break
+    case "google":
+      if (!body.id_token) {
+        return NextResponse.json(
+          { error: "id_token_required" },
+          { status: 400 },
+        )
+      }
+      upstreamPath = "/auth/login/google"
+      upstreamBody = { id_token: body.id_token }
       break
     // sms / apple / wechat land here when wired up.
     default:

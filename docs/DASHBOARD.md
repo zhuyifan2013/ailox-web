@@ -36,12 +36,44 @@ transparent 401 retry server-side.
 
 ```json
 { "method": "email", "email": "...", "password": "..." }
+{ "method": "google", "id_token": "..." }
 ```
 
-Only `email` is wired up today. Adding `sms` / `apple` / `wechat` means adding
-a new branch in `app/api/auth/login/route.ts` and pointing it at the
-corresponding backend route (`/auth/login/apple`, `/auth/login/wechat`, …).
-No dashboard UI changes are needed until we actually ship those login buttons.
+`email` and `google` are wired up today. Adding `sms` / `apple` / `wechat`
+means adding a new branch in `app/api/auth/login/route.ts` and pointing it at
+the corresponding backend route (`/auth/login/apple`, `/auth/login/wechat`, …).
+
+### Google Sign-In (web)
+
+Uses Google Identity Services (GIS). The login page loads
+`https://accounts.google.com/gsi/client` via `next/script`, renders the
+official GIS button, and posts the returned `credential` (id_token) to
+`/api/auth/login` with `method=google`. That route forwards to the backend's
+`/auth/login/google`, which verifies the id_token via Google JWKS.
+
+**Config:**
+
+1. `.env.local` at the `ailox-web` root:
+   ```
+   NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID=<web client id>
+   ```
+   Must have the `NEXT_PUBLIC_` prefix — the login page is a client component
+   and reads this at browser runtime. If unset, the Google button is hidden
+   and email login still works.
+
+2. Google Cloud Console → Credentials → edit the Web client:
+   - **Authorized JavaScript origins** must include every origin that serves
+     this UI: `http://localhost:3000` for dev, the production domain
+     (e.g. `https://ailox.favinci.cn`) for prod. Without this, GIS refuses
+     to render the button on that origin.
+   - Authorized redirect URIs are not needed — GIS flow is pure JS, no
+     browser redirect back to Google.
+
+3. The same client id is whitelisted on the backend (`GOOGLE_CLIENT_IDS`) so
+   id_tokens issued to it are accepted. That list is shared across every
+   Ailox surface (loopnote / sprintr / ailox-web); one Web client id is
+   enough because `serverClientId` (mobile) and GIS (web) both anchor the
+   id_token's `aud` to the Web client id.
 
 ---
 
