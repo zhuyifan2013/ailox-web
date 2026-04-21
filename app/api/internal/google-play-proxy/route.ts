@@ -47,7 +47,9 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid_body" }, { status: 400 })
   }
 
-  const { service_account, package_name, purchase_token } = body
+  const service_account = body.service_account as { client_email: string; private_key: string }
+  const package_name = body.package_name as string
+  const purchase_token = body.purchase_token as string
 
   // 1. Sign JWT and exchange for access token.
   const now = Math.floor(Date.now() / 1000)
