@@ -89,7 +89,28 @@ export async function POST(request: Request) {
     )
   }
 
-  // 2. Call subscriptionsv2.get
+  // 2. Call subscriptionsv2.get or acknowledge depending on action
+  const action = body.action ?? "verify"
+
+  if (action === "acknowledge") {
+    const subscription_id = body.subscription_id as string | undefined
+    if (!subscription_id) {
+      return Response.json({ error: "subscription_id_required" }, { status: 400 })
+    }
+    const ackUrl = `${PLAY_API_BASE}/applications/${package_name}/purchases/subscriptions/${subscription_id}/tokens/${purchase_token}:acknowledge`
+    const ackResp = await fetch(ackUrl, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: "{}",
+      cache: "no-store",
+    })
+    return new Response(await ackResp.text(), {
+      status: ackResp.status,
+      headers: { "Content-Type": "application/json" },
+    })
+  }
+
+  // Default: verify
   const url = `${PLAY_API_BASE}/applications/${package_name}/purchases/subscriptionsv2/tokens/${purchase_token}`
   const playResp = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
