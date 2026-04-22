@@ -36,6 +36,8 @@ export async function POST(request: Request) {
     service_account?: { client_email?: string; private_key?: string }
     package_name?: string
     purchase_token?: string
+    action?: string
+    subscription_id?: string
   } | null
 
   if (
