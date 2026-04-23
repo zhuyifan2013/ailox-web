@@ -1,9 +1,10 @@
 "use client"
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import Script from "next/script"
+import { SiGoogle, SiWechat } from "@icons-pack/react-simple-icons"
 
 // Google Identity Services — loaded from gsi/client via next/script. The
 // library mounts `window.google.accounts.id` once ready.
@@ -21,10 +22,7 @@ declare global {
             client_id: string
             callback: (r: GoogleCredentialResponse) => void
           }) => void
-          renderButton: (
-            parent: HTMLElement,
-            options: Record<string, unknown>,
-          ) => void
+          prompt: () => void
         }
       }
     }
@@ -49,7 +47,6 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [gisReady, setGisReady] = useState(false)
-  const googleBtnRef = useRef<HTMLDivElement>(null)
 
   const onGoogleCredential = useCallback(
     async (r: GoogleCredentialResponse) => {
@@ -78,22 +75,15 @@ function LoginForm() {
   )
 
   useEffect(() => {
-    if (!gisReady || !GOOGLE_CLIENT_ID || !googleBtnRef.current) return
+    if (!gisReady || !GOOGLE_CLIENT_ID) return
     const gis = window.google?.accounts.id
     if (!gis) return
-    gis.initialize({
-      client_id: GOOGLE_CLIENT_ID,
-      callback: onGoogleCredential,
-    })
-    gis.renderButton(googleBtnRef.current, {
-      theme: "filled_black",
-      size: "large",
-      type: "standard",
-      shape: "rectangular",
-      text: "continue_with",
-      width: 320,
-    })
+    gis.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onGoogleCredential })
   }, [gisReady, onGoogleCredential])
+
+  function triggerGoogleSignIn() {
+    window.google?.accounts.id.prompt()
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -160,21 +150,41 @@ function LoginForm() {
           </button>
         </form>
 
-        {GOOGLE_CLIENT_ID && (
-          <>
-            <div className="flex items-center gap-3 my-6">
-              <div className="flex-1 h-px bg-white/10" />
-              <span className="text-xs text-slate-500">or</span>
-              <div className="flex-1 h-px bg-white/10" />
-            </div>
-            <div ref={googleBtnRef} className="flex justify-center" />
-            <Script
-              src="https://accounts.google.com/gsi/client"
-              strategy="afterInteractive"
-              onLoad={() => setGisReady(true)}
-            />
-          </>
-        )}
+        <div className="flex items-center gap-3 my-6">
+          <div className="flex-1 h-px bg-white/10" />
+          <span className="text-xs text-slate-500">or continue with</span>
+          <div className="flex-1 h-px bg-white/10" />
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {GOOGLE_CLIENT_ID && (
+            <>
+              <button
+                type="button"
+                onClick={triggerGoogleSignIn}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-3 rounded-md border border-white/10 bg-white/5 hover:bg-white/10 transition text-white font-medium py-2.5 disabled:opacity-50"
+              >
+                <SiGoogle size={16} color="#4285F4" />
+                Continue with Google
+              </button>
+              <Script
+                src="https://accounts.google.com/gsi/client"
+                strategy="afterInteractive"
+                onLoad={() => setGisReady(true)}
+              />
+            </>
+          )}
+          <button
+            type="button"
+            disabled
+            className="w-full flex items-center justify-center gap-3 rounded-md border border-white/10 bg-white/5 text-slate-500 font-medium py-2.5 cursor-not-allowed"
+          >
+            <SiWechat size={16} color="#07C160" />
+            Continue with WeChat
+            <span className="text-xs text-slate-600 ml-1">(coming soon)</span>
+          </button>
+        </div>
 
         <p className="text-sm text-slate-400 mt-6 text-center">
           No account?{" "}
